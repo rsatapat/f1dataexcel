@@ -1,0 +1,7 @@
+name: f1dataexcel
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.10
+  - fastf1
