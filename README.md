@@ -1,6 +1,6 @@
 # f1dataexcel
 F1DataExcel is a Python command-line utility for downloading Formula 1 session data as an excel file using [FastF1](https://theoehrly.github.io/Fast-F1/). It supports structured workflows and integrates `argparse` to provide a user-friendly CLI.
----
+
 ## Installation
 ### 1. Clone the repository
 ```bash
