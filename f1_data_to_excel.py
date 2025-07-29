@@ -19,14 +19,16 @@ def get_f1_data(year=2022, data_destination='', cache=True):
     if cache:
         if ff1.Cache.get_cache_info()[0]==data_destination:
             ff1.Cache.set_enabled()
-            pass
+            print('Cache enabled in '+data_destination)
         else:
+            print('Cache enabled in '+data_destination)
             ff1.Cache.enable_cache(data_destination)
     else:
+        print('Cache disabled, new data will be downloaded...')
         ff1.Cache.set_disabled()
 
     # get events schedule for a year
-    schedule = fastf1.get_event_schedule(year)
+    schedule = ff1.get_event_schedule(year)
 
     ## dataframe for race and quali results
     season_results_summary = pd.DataFrame({'Driver':[0], 'Team':[0], 'Starting':[0], 
@@ -42,15 +44,15 @@ def get_f1_data(year=2022, data_destination='', cache=True):
         if 'test' in events['EventFormat']:
             continue
         elif 'sprint' in events['EventFormat']:
-            race = ff1.get_session(Year, events['Location'], 'Race')
-            sprint = ff1.get_session(Year, events['Location'], 'Sprint')
-            quali = ff1.get_session(Year, events['Location'], 'Q')
+            race = ff1.get_session(year, events['Location'], 'Race')
+            sprint = ff1.get_session(year, events['Location'], 'Sprint')
+            quali = ff1.get_session(year, events['Location'], 'Q')
             race.load(laps=False, weather=False, messages=False, telemetry=False, livedata=None)
             sprint.load(laps=False, weather=False, messages=False, telemetry=False, livedata=None)
             quali.load(laps=False, weather=False, messages=False, telemetry=False, livedata=None)
 
             if events['Session2'] == 'Sprint Qualifying':
-                sprint_quali = ff1.get_session(Year, events['Location'], 'Sprint Qualifying')
+                sprint_quali = ff1.get_session(year, events['Location'], 'Sprint Qualifying')
                 sprint_quali.load(laps=True, weather=False, messages=False, telemetry=False, livedata=None)
 
             sprint_result=sprint.results[['Abbreviation', 'TeamName', 'GridPosition', 'Position', 
@@ -64,8 +66,8 @@ def get_f1_data(year=2022, data_destination='', cache=True):
             season_results_summary = pd.concat([season_results_summary, sprint_result], ignore_index=True)
 
         elif 'conventional' in events['EventFormat']:
-            race = ff1.get_session(Year, events['Location'], 'Race')
-            quali = ff1.get_session(Year, events['Location'], 'Q')
+            race = ff1.get_session(year, events['Location'], 'Race')
+            quali = ff1.get_session(year, events['Location'], 'Q')
             race.load(laps=False, weather=False, messages=False, telemetry=False, livedata=None)
             quali.load(laps=False, weather=False, messages=False, telemetry=False, livedata=None)
 
@@ -80,12 +82,15 @@ def get_f1_data(year=2022, data_destination='', cache=True):
         season_results_summary = pd.concat([season_results_summary, race_result], ignore_index=True)
 
         if events['Session2'] == 'Sprint Qualifying':
-            sprint_quali_result = sprint_quali.results[['Abbreviation', 'TeamName', 'Position', 'Q1', 'Q2', 'Q3']]
+            sprint_quali_result = sprint_quali.results[['Abbreviation', 'TeamName', 'Position', 'Q1', 'Q2']].copy()
             sprint_quali_result.rename(columns={'Abbreviation':'Driver', 'TeamName':'Team'}, inplace=True)
             ## since Ergast does not directly produce results for sprint quali, we have to do it ourselves
+            sprint_quali_result['Q3'] = np.zeros(sprint_quali_result.shape[0])
             for driver in sprint_quali_result['Driver']:
                 sprint_quali_result.loc[sprint_quali_result['Driver']==driver, 'Q3'] = \
                 sprint_quali.laps.pick_drivers(driver).pick_fastest().LapTime.total_seconds()
+            sprint_quali_result.sort_values(by=['Q3'], inplace=True, ascending=True, na_position='last')
+            sprint_quali_result.loc[:, 'Position'] = np.arange(1, sprint_quali_result.shape[0]+1)
             sprint_quali_result.loc[:, 'Date'] = sprint_quali.event['Session2Date'].date().strftime('%Y-%m-%d')
             sprint_quali_result.loc[:, 'Event'] = events['Location'] +' '+'Sprint Qualifying'
             sprint_quali_result.loc[:, 'Round'] = quali.event['RoundNumber']
@@ -95,6 +100,7 @@ def get_f1_data(year=2022, data_destination='', cache=True):
         quali_result['Q1'] = quali.results['Q1'].apply(lambda x: x.total_seconds())
         quali_result['Q2'] = quali.results['Q2'].apply(lambda x: x.total_seconds())
         quali_result['Q3'] = quali.results['Q3'].apply(lambda x: x.total_seconds())
+        quali_result = quali_result.copy()
         quali_result.rename(columns={'Abbreviation':'Driver', 'TeamName':'Team'}, inplace=True)
         quali_result.loc[:, 'Date'] = quali.event['Session4Date'].date().strftime('%Y-%m-%d')
         quali_result.loc[:, 'Event'] = events['Location'] +' '+'Race Qualifying'
