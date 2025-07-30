@@ -4,7 +4,7 @@ F1DataExcel is a Python command-line utility for downloading Formula 1 session d
 ## Installation
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/f1dataexcel.git
+git clone https://github.com/rsatapat/f1dataexcel.git
 cd f1dataexcel
 ```
 ### 2. Create a Conda environment
