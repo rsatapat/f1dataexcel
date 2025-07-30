@@ -129,17 +129,12 @@ if __name__ == '__main__':
     import argparse
     import pathlib
 
-    parser = argparse.ArgumentParser(description='Short sample app')
+    parser = argparse.ArgumentParser(description='Get F1 data and save as excel file')
 
-    parser.add_argument('year', action="store")
-    parser.add_argument('-d', '--destination', action="store", default=pathlib.Path().resolve())
-
+    parser.add_argument('year', type=int, action="store")
+    parser.add_argument('-d', '--destination', action="store", default=str(pathlib.Path().resolve()))
+    parser.add_argument('-n', '--no-cache', action="store_false", dest='cache') # default value is True
     args = parser.parse_args()
-
-    # Individual arguments can be accessed as attributes...
-    print(args.year)
-    print(args.destination)
-
+    print(args)
     ## location for saving data
-    ff1.Cache.enable_cache(args.destination)
-    get_f1_data(year=args.year, data_destination=args.destination)
+    get_f1_data(year=args.year, data_destination=args.destination, cache=args.cache)

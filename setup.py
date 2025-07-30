@@ -6,7 +6,7 @@ setup(
     packages=find_packages(), # Auto-discovers all subdirectories with __init__.py files and includes them in the package.
     entry_points={
         'console_scripts': [
-            'mytool = mytool.__main__:main'
+            'f1dataexcel = f1dataexcel.__main__:main'
         ]
     },
 )
