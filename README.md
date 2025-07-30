@@ -10,6 +10,7 @@ cd f1dataexcel
 ### 2. Create a Conda environment
 ```bash
 conda env create -f environment.yml
+conda activate f1dataexcel
 ```
 ### 3. (Optional) Install as a CLI command
 If you want to use f1dataexcel as a global command in your environment:
