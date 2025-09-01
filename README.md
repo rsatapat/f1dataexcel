@@ -30,6 +30,16 @@ With installation
 f1dataexcel 2024 -d path/to/folder
 ```
 
+### If you want to install data for just one event
+```bash
+f1dataexcel 2024 -d path/to/folder -e Japan
+```
+OR
+```bash
+f1dataexcel 2024 -d path/to/folder -e Suzuka
+```
+Try to spell the name of the event as close to the correct spelling as possible, both the name of the country or the name of the track work, as shown in the examples above.
+
 ### Disabling FastF1 Cache (Optional)
 ```bash
 f1dataexcel 2024 -d path/to/folder --no-cache

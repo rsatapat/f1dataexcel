@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import os
 from datetime import datetime
+import difflib
 
 ## turn off unnecessary logging messages from FastF1
 logging.getLogger("fastf1").setLevel(logging.WARNING)
@@ -15,9 +16,9 @@ def get_race_time(race_times):
     final_race_times = gaps+np.ones(race_times.size)*lead_driver_time
     return np.round(final_race_times, 3)
 
-def get_f1_data(year=2022, data_destination='', cache=True):
+def get_f1_data(year=2022, data_destination='', cache=True, event=None):
     if cache:
-        if ff1.Cache.get_cache_info()[0]==data_destination:
+        if ff1.Cache.get_cache_info()[0]==data_destination: # is data_destination same as cache location
             ff1.Cache.set_enabled()
             print('Cache enabled in '+data_destination)
         else:
@@ -29,6 +30,28 @@ def get_f1_data(year=2022, data_destination='', cache=True):
 
     # get events schedule for a year
     schedule = ff1.get_event_schedule(year)
+    if event is None:
+        print(f"Getting data for {year} season")
+    else:
+        if event.isdigit():
+            schedule = schedule.loc[schedule['RoundNumber']==int(event)]
+        else:
+            schedule['EventName'] = \
+                schedule['EventName'].apply(lambda x:x.replace(' Grand Prix', ''))
+            locationmatch = [difflib.SequenceMatcher(None, x.lower(), event.lower()).ratio() for x in schedule['Location']]
+            countrymatch = [difflib.SequenceMatcher(None, x.lower(), event.lower()).ratio() for x in schedule['Country']]
+            eventmatch = [difflib.SequenceMatcher(None, x.lower(), event.lower()).ratio() for x in schedule['EventName']]
+            schedule['match']=\
+                [max(x,y,z) for x,y,z in zip(locationmatch, countrymatch, eventmatch)]
+            schedule = schedule.loc[schedule['match']>0.7]
+            schedule = schedule.loc[schedule['match']==schedule['match'].max()]
+            
+        if schedule.empty:
+            print(f"Sorry! Did not understand the event: {event}")
+            print("Try again with the correct eventName or eventNumber")
+            exit()
+        else:
+            print(f"{year} {schedule['EventName'].values[0]} Grand Prix")
 
     ## dataframe for race and quali results
     season_results_summary = pd.DataFrame({'Driver':[0], 'Team':[0], 'Starting':[0], 
@@ -116,13 +139,22 @@ def get_f1_data(year=2022, data_destination='', cache=True):
     event_num, _ = pd.factorize(season_results_summary['Event'])
     season_results_summary.loc[:, 'EventNumber'] = np.ones(event_num.shape[0])+event_num
 
-    with pd.ExcelWriter(os.path.join(data_destination, str(year)+' season results.xlsx')) as writer:
-        season_results_summary.to_excel(writer, index=False)
-    with pd.ExcelWriter(os.path.join(data_destination, str(year)+' season quali results.xlsx')) as writer:
-        season_quali_summary.to_excel(writer, index=False)
+    if event is None:
+        with pd.ExcelWriter(os.path.join(data_destination, str(year)+' season results.xlsx')) as writer:
+            season_results_summary.to_excel(writer, index=False)
+        with pd.ExcelWriter(os.path.join(data_destination, str(year)+' season quali results.xlsx')) as writer:
+            season_quali_summary.to_excel(writer, index=False)
 
-    season_results_summary.to_csv(os.path.join(data_destination, str(year)+' season results.csv'), index=False)
-    season_quali_summary.to_csv(os.path.join(data_destination, str(year)+' season quali results.csv'), index=False)
+        season_results_summary.to_csv(os.path.join(data_destination, str(year)+' season results.csv'), index=False)
+        season_quali_summary.to_csv(os.path.join(data_destination, str(year)+' season quali results.csv'), index=False)
+    else:
+        with pd.ExcelWriter(os.path.join(data_destination, str(year)+f" {schedule['EventName'].values[0]} Grand Prix results.xlsx")) as writer:
+            season_results_summary.to_excel(writer, index=False)
+        with pd.ExcelWriter(os.path.join(data_destination, str(year)+f" {schedule['EventName'].values[0]} Grand Prix quali results.xlsx")) as writer:
+            season_quali_summary.to_excel(writer, index=False)
+
+        season_results_summary.to_csv(os.path.join(data_destination, str(year)+f" {schedule['EventName'].values[0]} Grand Prix results.csv"), index=False)
+        season_quali_summary.to_csv(os.path.join(data_destination, str(year)+f" {schedule['EventName'].values[0]} Grand Prix quali results.csv"), index=False)
 
 
 if __name__ == '__main__':
@@ -132,9 +164,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Get F1 data and save as excel file')
 
     parser.add_argument('year', type=int, action="store")
+    parser.add_argument('-e','--event', type=str, action="store")
     parser.add_argument('-d', '--destination', action="store", default=str(pathlib.Path().resolve()))
     parser.add_argument('-n', '--no-cache', action="store_false", dest='cache') # default value is True
     args = parser.parse_args()
     print(args)
     ## location for saving data
-    get_f1_data(year=args.year, data_destination=args.destination, cache=args.cache)
+    get_f1_data(year=args.year, data_destination=args.destination, cache=args.cache, event=args.event)
